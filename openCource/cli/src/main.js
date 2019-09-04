@@ -45,7 +45,7 @@ Reflect.ownKeys(mapAction).forEach((action) => {
     } else {
       // console.log(action); // create
       // 执行命令 zhu-cli create projectName
-      require(path.resolve(__dirname, action))(...process.argv.slice(3));
+      require(path.resolve(__dirname, action))(program, ...process.argv.slice(3));
     }
   });
 });

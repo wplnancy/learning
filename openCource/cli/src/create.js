@@ -8,10 +8,26 @@ const path = require('path');
 const ncp = require('ncp');
 const MetalSmith = require('metalsmith'); // 遍历文件夹 找需不需要渲染
 
+const chalk = require("chalk")
+const glob = require("glob")
+const logSymbols = require('log-symbols')
+
+
 // consolidate 统一了所有模板引擎
 const {
   render,
 } = require('consolidate').ejs;
+
+function fatal(msg, stack) {
+  console.error();
+  console.error(chalk.red('  Metalsmith') + chalk.gray(' · ') + msg);
+  if (stack) {
+    console.error();
+    console.error(chalk.gray(stack));
+  }
+  console.error();
+  process.exit(1);
+}
 
 downloadGitRepe = util.promisify(downloadGitRepe);
 
@@ -55,7 +71,30 @@ const download = async (repo, tag) => {
   return dest; // 下载的最终目录
 };
 
-module.exports = async (projectName) => {
+module.exports = async (program, projectName) => {
+  const list = glob.sync('*')  // 遍历当前目录
+  if(!projectName) {
+    return program.help()
+  }
+
+  let rootName = path.basename(process.cwd())
+
+  if (list.length) {  // 如果当前目录不为空
+    if (list.filter(name => {
+      const fileName = path.resolve(process.cwd(), path.join('.', name))
+      const isDir = fs.statSync(fileName).isDirectory()
+      return name.indexOf(projectName) !== -1 && isDir
+    }).length !== 0) {
+      console.log(`项目${projectName}已经存在`)
+      return
+    }
+    rootName = projectName
+  } else if (rootName === projectName) {
+    rootName = '.'
+  } else {
+    rootName = projectName
+  }
+  
   let repos = await waitFnLoading(fetchRepoList, 'fetching template ....')();
   repos = repos.map((item) => item.name);
 
@@ -86,7 +125,7 @@ module.exports = async (projectName) => {
   const result = await waitFnLoading(download, 'download template....')(repo, tag);
 
   if (!fs.existsSync(path.join(result, 'ask.js'))) {
-    await ncp(result, path.resolve(projectName));
+    await ncp(result, path.resolve(rootName));
   } else {
     // 复杂的模板
     // 把 git 上的项目下载下来 如果有 ask 文件就是复杂的模板，  我们需要将用户选择填写到模板
@@ -94,7 +133,7 @@ module.exports = async (projectName) => {
     await new Promise((resolve, reject) => {
       MetalSmith(__dirname)
         .source(result)
-        .destination(path.resolve(projectName))
+        .destination(path.resolve(rootName))
         .use(async (files, metal, done) => {
           console.log(files, metal, done);
           const args = require(path.join(result, 'ask.js'));
@@ -122,8 +161,14 @@ module.exports = async (projectName) => {
         })
         .build((err) => {
           if (err) {
+            // 失败了用红色，增强提示
+            console.error(logSymbols.error, chalk.red(`创建失败：${error.message}`))
             reject();
           } else {
+            // 成功用绿色显示，给出积极的反馈
+            console.log(logSymbols.success, chalk.green('创建成功:)'))
+            console.log()
+            console.log(chalk.green('cd ' + rootName + '\nnpm install\nnpm run dev'))
             resolve();
           }
         });
