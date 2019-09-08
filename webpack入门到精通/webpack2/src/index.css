@@ -1,0 +1,10 @@
+body {
+  background-color:#fff;
+}
+
+#logo {
+  width: 100px;
+  height: 100px;
+  background-size: cover;
+  background: url(./images/qrcode.png);
+}

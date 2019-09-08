@@ -9,7 +9,7 @@ const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const {CleanWebpackPlugin} = require('clean-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
+const glob = require("glob")
 // 压缩
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const TerserPlugin = require('terser-webpack-plugin');
@@ -20,7 +20,8 @@ module.exports = {
   // entry: './src/index.js', // 如果是单人口 则 chunk 名字是 main
   entry: {
     index: './src/index.js',
-    login: './src/lodin.js'
+    // vendor: glob.sync('./node_modules/**/*.js')
+    // login: './src/lodin.js'
   },
   optimization: {
     minimizer: [ // 放压缩的插件
